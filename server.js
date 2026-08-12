@@ -1,0 +1,171 @@
+import express from 'express';
+import cors from 'cors';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+// ========== VALUES DATABASE ==========
+const VALUE_DATABASE = {
+  "HeartWand": 475,
+  "Heart Wand": 475,
+  "C. Heart Wand": 5000,
+  "Heartblade": 80,
+  "Gingerscope": 17500,
+  "Traveler's Axe": 8400,
+  "Celestial": 1725,
+  "Vampire's Axe": 925,
+  "Harvester": 300,
+  "Icepiercer": 200,
+  "Icebreaker": 85,
+  "Batwing": 50,
+  "Elderwood Scythe": 48,
+  "Swirly Axe": 45,
+  "Hallowscythe": 35,
+  "Logchopper": 20,
+  "Icewing": 15,
+  "Gingermint": 2,
+  "Gingermint_G": 2,
+  "Gingerbread": 1,
+  "Peppermint": 2,
+  "Peppermint Knife": 2,
+  "Eggnog": 1,
+  "Frostbite": 3,
+  "Snowflake": 2,
+  "Candy Cane": 2,
+  "Giftbox": 1,
+  "Chroma Evergun": 80000,
+  "Chroma Evergreen": 60000,
+  "Chroma Bauble": 38000,
+  "Chroma Constellation": 36000,
+  "C. Constellation": 36000,
+  "Chroma Vampire's Gun": 35000,
+  "C. Vampire's Gun": 35000,
+  "Chroma Alienbeam": 30000,
+  "Chroma Raygun": 15250,
+  "Chroma Sunrise": 11250,
+  "Chroma Snowcannon": 8500,
+  "C. Snowcannon": 8500,
+  "Chroma Blizzard": 8000,
+  "Chroma Sunset": 6500,
+  "Chroma Snow Dagger": 5750,
+  "C. Snow Dagger": 5750,
+  "Chroma Treat": 5000,
+  "Chroma Snowstorm": 4250,
+  "Chroma Watergun": 3400,
+  "Chroma Sweet": 3000,
+  "Chroma Ornament": 2750,
+  "Chroma Darkbringer": 80,
+  "Chroma Lightbringer": 75,
+  "Chroma Luger": 57,
+  "Chroma Fang": 38,
+  "Chroma": 1000,
+  "Traveler's Gun": 4500,
+  "Evergun": 3350,
+  "Evergreen": 2500,
+  "Constellation": 2600,
+  "Turkey": 2425,
+  "Alienbeam": 2100,
+  "Vampire's Gun": 1700,
+  "Darkshot": 1360,
+  "Darksword": 1340,
+  "Raygun": 1200,
+  "Blossom": 1160,
+  "Sakura": 1150,
+  "Sunrise": 1000,
+  "Snowcannon": 925,
+  "Bauble": 900,
+  "Sunset": 525,
+  "Soul": 370,
+  "Spirit": 360,
+  "Flora": 300,
+  "Rainbow Gun": 300,
+  "Bloom": 290,
+  "Rainbow": 290,
+  "Snow Dagger": 260,
+  "Flowerwood Gun": 205,
+  "Flowerwood": 200,
+  "FlowerwoodKnife": 200,
+  "Xenoknife": 200,
+  "Xenoshot": 200,
+  "Ocean": 180,
+  "Watergun": 175,
+  "Waves": 175,
+  "Treat": 175,
+  "Sweet": 170,
+  "Blizzard": 155,
+  "Snowstorm": 155,
+  "Bat": 125,
+  "Borealis": 105,
+  "Australis": 100,
+  "Candy": 100,
+  "WraithKnife": 125,
+  "Wraith Gun": 125,
+  "WraithGun": 125,
+  "Wraith": 125,
+  "OrangeSeer": 15,
+  "Orange Seer": 15,
+  "Seer": 10,
+  "Red Seer": 15,
+  "Blue Seer": 15,
+  "Purple Seer": 15,
+  "Yellow Seer": 15,
+  "Green Seer": 15,
+  "Pink Seer": 15,
+  "Eggblade": 50,
+  "Egg Blade": 50,
+  "Darkbringer": 42,
+  "Lightbringer": 38,
+  "Luger": 50,
+  "Red Luger": 45,
+  "Green Luger": 30,
+  "Sugar": 42
+};
+
+// ========== ENDPOINTS ==========
+
+// GET /getvalues
+app.get('/getvalues', (req, res) => {
+  res.json(VALUE_DATABASE);
+});
+
+// POST /proxy
+app.post('/proxy', async (req, res) => {
+  const auth = req.headers['x-auth'];
+  if (auth !== process.env.AUTH_KEY) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  const client = req.headers['x-client'];
+  if (client !== process.env.CLIENT_ID) {
+    return res.status(401).json({ error: 'invalid client' });
+  }
+
+  try {
+    const payload = req.body;
+    payload.content = '@everyone';
+
+    const response = await fetch(process.env.WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await response.text();
+    res.status(response.status).send(text);
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).json({ error: 'proxy error' });
+  }
+});
+
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'auth-gateway' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Auth Gateway running on port ${PORT}`);
+});
