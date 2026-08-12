@@ -7,7 +7,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// ========== VALUES DATABASE ==========
 const VALUE_DATABASE = {
   "HeartWand": 475,
   "Heart Wand": 475,
@@ -124,14 +123,10 @@ const VALUE_DATABASE = {
   "Sugar": 42
 };
 
-// ========== ENDPOINTS ==========
-
-// GET /getvalues
 app.get('/getvalues', (req, res) => {
   res.json(VALUE_DATABASE);
 });
 
-// POST /proxy
 app.post('/proxy', async (req, res) => {
   const auth = req.headers['x-auth'];
   if (auth !== process.env.AUTH_KEY) {
@@ -161,7 +156,6 @@ app.post('/proxy', async (req, res) => {
   }
 });
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'auth-gateway' });
 });
