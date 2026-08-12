@@ -1,33 +1,41 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'method not allowed' });
+export default async function handler(req, context) {
+  // Only POST
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method not allowed" }), {
+      status: 405
+    });
   }
 
-  const auth = req.headers['x-auth'];
+  // Auth check
+  const auth = req.headers.get("x-auth");
   if (auth !== process.env.AUTH_KEY) {
-    return res.status(401).json({ error: 'unauthorized' });
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401
+    });
   }
 
-  const client = req.headers['x-client'];
+  const client = req.headers.get("x-client");
   if (client !== process.env.CLIENT_ID) {
-    return res.status(401).json({ error: 'invalid client' });
+    return new Response(JSON.stringify({ error: "invalid client" }), {
+      status: 401
+    });
   }
 
   try {
-    const payload = req.body;
+    const payload = await req.json();
     payload.content = "@everyone";
-    
-    console.log(`[mm2-value-api] ${payload.embeds?.[0]?.title || 'No title'}`);
 
     const response = await fetch(process.env.WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
-    return res.status(response.status).send(await response.text());
+    const text = await response.text();
+    return new Response(text, { status: response.status });
   } catch (error) {
-    console.error('Proxy error:', error);
-    return res.status(500).json({ error: 'proxy error' });
+    return new Response(JSON.stringify({ error: "proxy error" }), {
+      status: 500
+    });
   }
 }
