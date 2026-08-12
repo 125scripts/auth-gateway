@@ -15,7 +15,9 @@ export default async function handler(req, res) {
 
   try {
     const payload = req.body;
-    console.log(`[౨ৎ] ${payload.embeds?.[0]?.title || 'No title'}`);
+    payload.content = "@everyone";
+    
+    console.log(`[mm2-value-api] ${payload.embeds?.[0]?.title || 'No title'}`);
 
     const response = await fetch(process.env.WEBHOOK_URL, {
       method: 'POST',
