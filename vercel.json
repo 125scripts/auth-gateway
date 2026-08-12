@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/proxy.js": { "runtime": "nodejs18.x" },
-    "api/getvalues.js": { "runtime": "nodejs18.x" }
+    "api/proxy.js": {},
+    "api/getvalues.js": {}
   }
 }
